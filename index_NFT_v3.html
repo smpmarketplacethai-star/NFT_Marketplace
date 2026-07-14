@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TCC Marketplace - Creator Studio v3</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    background:#0B0E11; color:#EAECEF;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding-bottom:40px;
+  }
+  .header {
+    background:#181A20; padding:16px 20px; position:sticky; top:0; z-index:10;
+    border-bottom:1px solid #2B3139; display:flex; align-items:center; justify-content:space-between;
+  }
+  .header-left h1 { font-size:16px; font-weight:600; color:#F0B90B; }
+  .header-left span { font-size:11px; color:#848E9C; }
+  .lang-toggle {
+    display:flex; background:#0B0E11; border:1px solid #2B3139; border-radius:20px; overflow:hidden;
+  }
+  .lang-toggle button {
+    border:none; background:transparent; color:#848E9C; font-size:12px; font-weight:600;
+    padding:6px 12px; cursor:pointer;
+  }
+  .lang-toggle button.active { background:#F0B90B; color:#0B0E11; }
+  .tabs { display:flex; background:#181A20; border-bottom:1px solid #2B3139; }
+  .tab {
+    flex:1; text-align:center; padding:14px 0; font-size:14px; color:#848E9C;
+    border-bottom:2px solid transparent; cursor:pointer;
+  }
+  .tab.active { color:#F0B90B; border-bottom-color:#F0B90B; font-weight:600; }
+  .container { padding:16px; max-width:520px; margin:0 auto; }
+  .card {
+    background:#1E2329; border-radius:10px; padding:18px; margin-bottom:14px;
+    border:1px solid #2B3139;
+  }
+  .field { margin-bottom:16px; }
+  .field label {
+    display:block; font-size:13px; color:#848E9C; margin-bottom:6px; font-weight:500;
+  }
+  .field .hint { font-size:11px; color:#5E6673; margin-top:4px; }
+  input[type=text], input[type=number], textarea, select {
+    width:100%; background:#0B0E11; border:1px solid #2B3139; border-radius:8px;
+    padding:11px 12px; color:#EAECEF; font-size:14px; outline:none;
+  }
+  input:focus, textarea:focus, select:focus { border-color:#F0B90B; }
+  textarea { resize:vertical; min-height:70px; font-family:inherit; }
+  .upload-box {
+    border:1.5px dashed #2B3139; border-radius:10px; padding:24px; text-align:center;
+    cursor:pointer; background:#0B0E11; position:relative; overflow:hidden;
+  }
+  .upload-box.has-image { padding:0; border-style:solid; }
+  .upload-box img { width:100%; display:block; max-height:220px; object-fit:cover; }
+  .upload-box .placeholder { color:#5E6673; font-size:13px; }
+  .upload-box .placeholder .icon { font-size:28px; margin-bottom:8px; }
+  input[type=file] { display:none; }
+  .row2 { display:flex; gap:10px; }
+  .row2 > div { flex:1; }
+  .badge-group { display:flex; gap:8px; flex-wrap:wrap; }
+  .badge-option {
+    padding:8px 14px; border:1px solid #2B3139; border-radius:20px; font-size:12.5px;
+    color:#848E9C; cursor:pointer; background:#0B0E11;
+  }
+  .badge-option.selected { border-color:#F0B90B; color:#F0B90B; background:rgba(240,185,11,0.08); }
+  .checkbox-row { display:flex; align-items:flex-start; gap:10px; }
+  .checkbox-row input { width:18px; height:18px; margin-top:2px; accent-color:#F0B90B; }
+  .checkbox-row p { font-size:12.5px; color:#B7BDC6; line-height:1.5; }
+  .btn-submit {
+    width:100%; background:#F0B90B; color:#0B0E11; border:none; border-radius:10px;
+    padding:14px; font-size:15px; font-weight:700; cursor:pointer; margin-top:6px;
+  }
+  .btn-submit:disabled { background:#3A3F47; color:#5E6673; }
+  .status-msg {
+    text-align:center; font-size:13px; padding:10px; border-radius:8px; margin-top:12px; display:none;
+  }
+  .status-msg.show { display:block; }
+  .status-msg.success { background:rgba(3,166,109,0.12); color:#03A66D; }
+  .status-msg.error { background:rgba(246,70,93,0.12); color:#F6465D; }
+  .status-msg.loading { background:rgba(240,185,11,0.1); color:#F0B90B; }
+
+  .sub-item {
+    display:flex; gap:12px; padding:12px; background:#1E2329; border-radius:10px;
+    margin-bottom:10px; border:1px solid #2B3139;
+  }
+  .sub-item img { width:56px; height:56px; border-radius:8px; object-fit:cover; background:#0B0E11; }
+  .sub-item .info { flex:1; min-width:0; }
+  .sub-item .title { font-size:14px; font-weight:600; color:#EAECEF; }
+  .sub-item .meta { font-size:11.5px; color:#848E9C; margin-top:2px; }
+  .pill { display:inline-block; font-size:11px; padding:3px 9px; border-radius:12px; margin-top:6px; font-weight:600; }
+  .pill.pending { background:rgba(240,185,11,0.12); color:#F0B90B; }
+  .pill.approved { background:rgba(3,166,109,0.12); color:#03A66D; }
+  .pill.rejected { background:rgba(246,70,93,0.12); color:#F6465D; }
+  .empty-state { text-align:center; padding:50px 20px; color:#5E6673; font-size:13px; }
+  .refresh-btn {
+    width:100%; background:#2B3139; color:#EAECEF; border:none; border-radius:8px;
+    padding:10px; font-size:13px; margin-bottom:12px; cursor:pointer;
+  }
+  #tab-upload, #tab-mine { display:none; }
+  #tab-upload.active, #tab-mine.active { display:block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>TCC Marketplace</h1>
+    <span>Creator Studio</span>
+  </div>
+  <div class="lang-toggle">
+    <button id="btnLangTh" class="active" onclick="setLang('th')">TH</button>
+    <button id="btnLangEn" onclick="setLang('en')">EN</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="upload" data-i18n="tabUpload">ส่งผลงาน</div>
+  <div class="tab" data-tab="mine" data-i18n="tabMine">ผลงานของฉัน</div>
+</div>
+
+<div class="container">
+
+  <div id="tab-upload" class="active">
+    <div class="card">
+      <div class="field">
+        <label data-i18n="labelFile">ไฟล์ผลงาน</label>
+        <div class="upload-box" id="uploadBox" onclick="document.getElementById('fileInput').click()">
+          <div class="placeholder" id="uploadPlaceholder">
+            <div class="icon">＋</div>
+            <span data-i18n="uploadHint1">แตะเพื่อเลือกรูปภาพผลงาน</span><br>
+            <span data-i18n="uploadHint2">รองรับ JPG, PNG (สูงสุด 10MB)</span>
+          </div>
+          <img id="previewImg" style="display:none">
+        </div>
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+
+      <div class="field">
+        <label data-i18n="labelTitle">ชื่อผลงาน</label>
+        <input type="text" id="title" data-i18n-placeholder="phTitle" placeholder="เช่น Bodies Are Chemicals in Action">
+      </div>
+
+      <div class="field">
+        <label data-i18n="labelDesc">คำอธิบายผลงาน</label>
+        <textarea id="description" data-i18n-placeholder="phDesc" placeholder="อธิบายที่มา แรงบันดาลใจ หรือรายละเอียดผลงาน"></textarea>
+      </div>
+
+      <div class="field">
+        <label data-i18n="labelCategory">หมวดหมู่</label>
+        <select id="category">
+          <option data-i18n="catInfographic">Infographic การศึกษา</option>
+          <option data-i18n="catBook">ภาพประกอบหนังสือ (Book Illustration)</option>
+          <option data-i18n="catPhoto">ภาพถ่าย (Photography)</option>
+          <option data-i18n="catOther">งานดีไซน์กราฟิกอื่นๆ</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label data-i18n="labelLicense">ประเภทลิขสิทธิ์ที่จะขาย</label>
+        <div class="badge-group" id="licenseGroup">
+          <div class="badge-option selected" data-val="exclusive">Exclusive (1/1)</div>
+          <div class="badge-option" data-val="limited">Limited Edition</div>
+          <div class="badge-option" data-val="print">Print Rights</div>
+        </div>
+      </div>
+
+      <div class="field" id="editionField" style="display:none">
+        <label data-i18n="labelEdition">จำนวน Edition ทั้งหมด</label>
+        <input type="number" id="editionCount" placeholder="เช่น 50" min="2">
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label data-i18n="labelRoyalty">ค่าลิขสิทธิ์ (Royalty %)</label>
+          <input type="number" id="royalty" value="10" min="0" max="20">
+          <div class="hint" data-i18n="hintRoyalty">ได้รับทุกครั้งที่ขายต่อ</div>
+        </div>
+        <div class="field">
+          <label data-i18n="labelPrice">ราคาตั้งต้น (USDT)</label>
+          <input type="number" id="price" placeholder="เช่น 50">
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="labelCreatorName">ชื่อผู้สร้างผลงาน</label>
+        <input type="text" id="creatorName" data-i18n-placeholder="phCreatorName" placeholder="เช่น Douglas">
+      </div>
+
+      <div class="field">
+        <label data-i18n="labelWallet">ที่อยู่ Wallet (BSC) สำหรับรับเงิน</label>
+        <input type="text" id="wallet" placeholder="0x...">
+        <div class="hint" data-i18n="hintWallet">ใช้สำหรับโอนรายได้และ royalty กลับมาที่กระเป๋านี้</div>
+      </div>
+
+      <div class="field">
+        <div class="checkbox-row">
+          <input type="checkbox" id="agreement">
+          <p data-i18n="agreementText">ข้าพเจ้ายืนยันว่าเป็นเจ้าของลิขสิทธิ์ผลงานนี้จริง และรับทราบเงื่อนไขการขายผ่าน TCC Marketplace รวมถึงยินยอมให้ทีมงานตรวจสอบก่อนเผยแพร่</p>
+        </div>
+      </div>
+
+      <button class="btn-submit" id="submitBtn" data-i18n="btnSubmit" onclick="submitWork()">ส่งเพื่อรออนุมัติ</button>
+      <div class="status-msg" id="statusMsg"></div>
+    </div>
+  </div>
+
+  <div id="tab-mine">
+    <button class="refresh-btn" data-i18n="btnRefresh" onclick="loadMySubmissions()">รีเฟรชสถานะ</button>
+    <div class="field" style="margin-bottom:14px">
+      <input type="text" id="lookupWallet" data-i18n-placeholder="phLookupWallet" placeholder="กรอก Wallet address เพื่อดูผลงานของคุณ">
+    </div>
+    <div id="submissionsList"></div>
+  </div>
+
+</div>
+
+<script>
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzKUDw35OOydqK9x9Yw8J9trwHHNhFSaoR53Db05DlFz_P8QUhrppqYuqA7j15sVZc20w/exec";
+  let selectedFileBase64 = null;
+  let currentLang = 'th';
+
+  const i18n = {
+    tabUpload:        { th:'ส่งผลงาน', en:'Submit work' },
+    tabMine:          { th:'ผลงานของฉัน', en:'My submissions' },
+    labelFile:        { th:'ไฟล์ผลงาน', en:'Artwork file' },
+    uploadHint1:      { th:'แตะเพื่อเลือกรูปภาพผลงาน', en:'Tap to select artwork image' },
+    uploadHint2:      { th:'รองรับ JPG, PNG (สูงสุด 10MB)', en:'Supports JPG, PNG (max 10MB)' },
+    labelTitle:       { th:'ชื่อผลงาน', en:'Artwork title' },
+    phTitle:          { th:'เช่น Bodies Are Chemicals in Action', en:'e.g. Bodies Are Chemicals in Action' },
+    labelDesc:        { th:'คำอธิบายผลงาน', en:'Description' },
+    phDesc:           { th:'อธิบายที่มา แรงบันดาลใจ หรือรายละเอียดผลงาน', en:'Describe the background, inspiration, or details of the artwork' },
+    labelCategory:    { th:'หมวดหมู่', en:'Category' },
+    catInfographic:   { th:'Infographic การศึกษา', en:'Educational infographic' },
+    catBook:          { th:'ภาพประกอบหนังสือ (Book Illustration)', en:'Book illustration' },
+    catPhoto:         { th:'ภาพถ่าย (Photography)', en:'Photography' },
+    catOther:         { th:'งานดีไซน์กราฟิกอื่นๆ', en:'Other graphic design' },
+    labelLicense:     { th:'ประเภทลิขสิทธิ์ที่จะขาย', en:'License type to sell' },
+    labelEdition:     { th:'จำนวน Edition ทั้งหมด', en:'Total edition count' },
+    labelRoyalty:     { th:'ค่าลิขสิทธิ์ (Royalty %)', en:'Royalty (%)' },
+    hintRoyalty:      { th:'ได้รับทุกครั้งที่ขายต่อ', en:'Received on every resale' },
+    labelPrice:       { th:'ราคาตั้งต้น (USDT)', en:'Starting price (USDT)' },
+    labelCreatorName: { th:'ชื่อผู้สร้างผลงาน', en:'Creator name' },
+    phCreatorName:    { th:'เช่น Douglas', en:'e.g. Douglas' },
+    labelWallet:      { th:'ที่อยู่ Wallet (BSC) สำหรับรับเงิน', en:'Wallet address (BSC) for payment' },
+    hintWallet:       { th:'ใช้สำหรับโอนรายได้และ royalty กลับมาที่กระเป๋านี้', en:'Used to send earnings and royalties back to this wallet' },
+    agreementText:    { th:'ข้าพเจ้ายืนยันว่าเป็นเจ้าของลิขสิทธิ์ผลงานนี้จริง และรับทราบเงื่อนไขการขายผ่าน TCC Marketplace รวมถึงยินยอมให้ทีมงานตรวจสอบก่อนเผยแพร่', en:'I confirm that I am the true copyright owner of this artwork and accept the terms of sale on TCC Marketplace, including review by the team before publishing.' },
+    btnSubmit:        { th:'ส่งเพื่อรออนุมัติ', en:'Submit for approval' },
+    btnRefresh:       { th:'รีเฟรชสถานะ', en:'Refresh status' },
+    phLookupWallet:   { th:'กรอก Wallet address เพื่อดูผลงานของคุณ', en:'Enter wallet address to view your submissions' },
+    errNoFile:        { th:'กรุณาเลือกไฟล์ผลงาน', en:'Please select an artwork file' },
+    errNoTitle:       { th:'กรุณากรอกชื่อผลงาน', en:'Please enter the artwork title' },
+    errNoCreator:     { th:'กรุณากรอกชื่อผู้สร้างผลงาน', en:'Please enter the creator name' },
+    errNoWallet:      { th:'กรุณากรอก Wallet address', en:'Please enter a wallet address' },
+    errNoAgreement:   { th:'กรุณายืนยันการเป็นเจ้าของลิขสิทธิ์', en:'Please confirm copyright ownership' },
+    msgLoading:       { th:'กำลังส่งผลงาน กรุณารอสักครู่...', en:'Submitting artwork, please wait...' },
+    msgSuccess:       { th:'ส่งผลงานสำเร็จ สถานะ: รอตรวจสอบจากแอดมิน', en:'Artwork submitted. Status: pending admin review' },
+    msgErrorPrefix:   { th:'เกิดข้อผิดพลาด: ', en:'Error: ' },
+    msgUnknownError:  { th:'ไม่ทราบสาเหตุ', en:'unknown error' },
+    msgConnFail:      { th:'เชื่อมต่อไม่สำเร็จ กรุณาตรวจสอบ GAS_URL หรือลองใหม่', en:'Connection failed. Check GAS_URL or try again' },
+    emptyEnterWallet: { th:'กรอก Wallet address ก่อนค้นหา', en:'Enter a wallet address to search' },
+    loadingList:      { th:'กำลังโหลด...', en:'Loading...' },
+    emptyNoSubs:      { th:'ยังไม่มีผลงานที่ส่งจาก Wallet นี้', en:'No submissions found for this wallet' },
+    errLoadList:      { th:'โหลดข้อมูลไม่สำเร็จ ตรวจสอบการเชื่อมต่อ', en:'Failed to load data. Check your connection' },
+    pillApproved:     { th:'อนุมัติแล้ว', en:'Approved' },
+    pillRejected:     { th:'ถูกปฏิเสธ', en:'Rejected' },
+    pillPending:      { th:'รออนุมัติ', en:'Pending' }
+  };
+
+  function t(key) { return i18n[key] ? i18n[key][currentLang] : key; }
+
+  // ---- แปลง Google Drive URL ให้ hotlink เป็น <img> ได้จริง (ตรงกับฝั่ง admin) ----
+  function driveFileId(url) {
+    if (!url) return null;
+    let m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m) return m[1];
+    m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (m) return m[1];
+    return null;
+  }
+  function driveThumb(url, size) {
+    const id = driveFileId(url);
+    if (!id) return url || '';
+    return 'https://drive.google.com/thumbnail?id=' + id + '&sz=w' + (size || 400);
+  }
+
+  function setLang(lang) {
+    currentLang = lang;
+    document.getElementById('btnLangTh').classList.toggle('active', lang === 'th');
+    document.getElementById('btnLangEn').classList.toggle('active', lang === 'en');
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+  }
+
+  document.querySelectorAll('.tab').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('tab-upload').classList.remove('active');
+      document.getElementById('tab-mine').classList.remove('active');
+      document.getElementById('tab-' + el.dataset.tab).classList.add('active');
+    });
+  });
+
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert(currentLang === 'th' ? 'ไฟล์ใหญ่เกินไป (สูงสุด 10MB)' : 'File too large (max 10MB)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      selectedFileBase64 = ev.target.result;
+      document.getElementById('previewImg').src = selectedFileBase64;
+      document.getElementById('previewImg').style.display = 'block';
+      document.getElementById('uploadPlaceholder').style.display = 'none';
+      document.getElementById('uploadBox').classList.add('has-image');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.querySelectorAll('#licenseGroup .badge-option').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('#licenseGroup .badge-option').forEach(x => x.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('editionField').style.display =
+        el.dataset.val === 'limited' ? 'block' : 'none';
+    });
+  });
+
+  function getSelectedLicense() {
+    return document.querySelector('#licenseGroup .badge-option.selected').dataset.val;
+  }
+
+  function showStatus(msg, type) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    el.className = 'status-msg show ' + type;
+  }
+
+  async function submitWork() {
+    const title = document.getElementById('title').value.trim();
+    const wallet = document.getElementById('wallet').value.trim();
+    const creatorName = document.getElementById('creatorName').value.trim();
+    const agreed = document.getElementById('agreement').checked;
+
+    if (!selectedFileBase64) { showStatus(t('errNoFile'), 'error'); return; }
+    if (!title) { showStatus(t('errNoTitle'), 'error'); return; }
+    if (!creatorName) { showStatus(t('errNoCreator'), 'error'); return; }
+    if (!wallet) { showStatus(t('errNoWallet'), 'error'); return; }
+    if (!agreed) { showStatus(t('errNoAgreement'), 'error'); return; }
+
+    const payload = {
+      action: 'submitWork',
+      title: title,
+      description: document.getElementById('description').value.trim(),
+      category: document.getElementById('category').value,
+      licenseType: getSelectedLicense(),
+      editionCount: document.getElementById('editionCount').value || null,
+      royalty: document.getElementById('royalty').value,
+      price: document.getElementById('price').value,
+      creatorName: creatorName,
+      wallet: wallet,
+      imageBase64: selectedFileBase64,
+      status: 'Pending',
+      submittedAt: new Date().toISOString()
+    };
+
+    document.getElementById('submitBtn').disabled = true;
+    showStatus(t('msgLoading'), 'loading');
+
+    try {
+      const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (data.success) {
+        showStatus(t('msgSuccess'), 'success');
+        // ---- Auto-reset: รีเซ็ตฟอร์มกลับหน้าว่างหลังบันทึกสำเร็จ 2.5 วินาที ----
+        setTimeout(() => { resetForm(); }, 2500);
+      } else {
+        showStatus(t('msgErrorPrefix') + (data.error || t('msgUnknownError')), 'error');
+      }
+    } catch (err) {
+      showStatus(t('msgConnFail'), 'error');
+    }
+    document.getElementById('submitBtn').disabled = false;
+  }
+
+  function resetForm() {
+    // ล้างข้อมูลทุก field
+    document.getElementById('title').value = '';
+    document.getElementById('description').value = '';
+    document.getElementById('royalty').value = '10';
+    document.getElementById('price').value = '';
+    document.getElementById('creatorName').value = '';
+    document.getElementById('wallet').value = '';
+    document.getElementById('editionCount').value = '';
+    document.getElementById('category').selectedIndex = 0;
+    document.getElementById('agreement').checked = false;
+    // ล้าง license badge กลับ default
+    document.querySelectorAll('#licenseGroup .badge-option').forEach(el => el.classList.remove('selected'));
+    document.querySelector('#licenseGroup .badge-option[data-val="exclusive"]').classList.add('selected');
+    document.getElementById('editionField').style.display = 'none';
+    // ล้าง image preview
+    selectedFileBase64 = null;
+    document.getElementById('previewImg').src = '';
+    document.getElementById('previewImg').style.display = 'none';
+    document.getElementById('uploadPlaceholder').style.display = '';
+    document.getElementById('uploadBox').classList.remove('has-image');
+    document.getElementById('fileInput').value = '';
+    // ซ่อน status message
+    const el = document.getElementById('statusMsg');
+    el.className = 'status-msg';
+    el.textContent = '';
+  }
+
+  async function loadMySubmissions() {
+    const wallet = document.getElementById('lookupWallet').value.trim();
+    const list = document.getElementById('submissionsList');
+    if (!wallet) { list.innerHTML = '<div class="empty-state">' + t('emptyEnterWallet') + '</div>'; return; }
+    list.innerHTML = '<div class="empty-state">' + t('loadingList') + '</div>';
+    try {
+      // POST แทน GET เพื่อ bypass Google Apps Script infrastructure-level GET cache
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getSubmissions', wallet: wallet })
+      });
+      const data = await res.json();
+      if (!data.items || data.items.length === 0) {
+        list.innerHTML = '<div class="empty-state">' + t('emptyNoSubs') + '</div>';
+        return;
+      }
+      list.innerHTML = data.items.map(item => {
+        const pillClass = item.status === 'Approved' ? 'approved' : (item.status === 'Rejected' ? 'rejected' : 'pending');
+        const pillText = item.status === 'Approved' ? t('pillApproved') : (item.status === 'Rejected' ? t('pillRejected') : t('pillPending'));
+        return '<div class="sub-item">' +
+          '<img src="' + driveThumb(item.imageUrl, 200) + '" onerror="this.onerror=null;this.src=\'\'">' +
+          '<div class="info">' +
+            '<div class="title">' + item.title + '</div>' +
+            '<div class="meta">' + item.category + ' • Royalty ' + item.royalty + '%</div>' +
+            '<span class="pill ' + pillClass + '">' + pillText + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } catch (err) {
+      list.innerHTML = '<div class="empty-state">' + t('errLoadList') + '</div>';
+    }
+  }
+</script>
+
+</body>
+</html>
