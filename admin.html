@@ -188,7 +188,7 @@
 
 <div class="container">
   <div class="config-hint">
-    <span data-i18n="configHint">TCC Marketplace listing Smart Contract</span> <code>ERC-721 On BNB Smart Chain</code>
+    <span data-i18n="configHint">ตั้งค่า GAS_URL ในไฟล์นี้ให้ตรงกับ Web App ที่ deploy จาก</span> <code>tcc_creator_backend.gs</code>
   </div>
 
   <button class="refresh-btn" onclick="loadSubmissions()" data-i18n="btnRefresh">รีเฟรชรายการ</button>
@@ -351,10 +351,10 @@
     const list = document.getElementById('itemsList');
     list.innerHTML = '<div class="empty-state">' + t('loadingState') + '</div>';
     try {
-      // ส่งผ่าน query string เพื่อหลีกเลี่ยง CORS preflight และ POST→GET redirect body loss
-      const res = await fetch(GAS_URL + '?action=getAllSubmissions&status=All&t=' + Date.now(), {
-        method: 'GET',
-        redirect: 'follow'
+      // POST ไม่ใส่ Content-Type header = ไม่เกิด CORS preflight, GAS รับ e.postData.contents ได้ปกติ
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getAllSubmissions', status: 'All' })
       });
       const data = await res.json();
       allItems = data.items || [];
@@ -444,16 +444,10 @@
       row.innerHTML = '<span class="btn-spinner"></span>' + t('processingMsg');
     }
     try {
-      const params = new URLSearchParams({
-        action: 'updateStatus',
-        id: id,
-        newStatus: newStatus,
-        rejectReason: rejectReason || '',
-        t: Date.now()
-      });
-      const res = await fetch(GAS_URL + '?' + params.toString(), {
-        method: 'GET',
-        redirect: 'follow'
+      // POST ไม่ใส่ Content-Type header = ไม่เกิด CORS preflight
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'updateStatus', id: id, newStatus: newStatus, rejectReason: rejectReason || '' })
       });
       const data = await res.json();
       if (data.success) {
