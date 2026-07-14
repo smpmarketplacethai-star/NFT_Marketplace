@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TCC Admin - Content Approval</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    background:#0B0E11; color:#EAECEF;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding-bottom:40px;
+  }
+  .header {
+    background:#181A20; padding:16px 20px; position:sticky; top:0; z-index:10;
+    border-bottom:1px solid #2B3139; display:flex; align-items:center; justify-content:space-between;
+  }
+  .header-left h1 { font-size:16px; font-weight:600; color:#F0B90B; }
+  .header-left span { font-size:11px; color:#848E9C; }
+  .lang-toggle {
+    display:flex; background:#0B0E11; border:1px solid #2B3139; border-radius:20px; overflow:hidden;
+  }
+  .lang-toggle button {
+    border:none; background:transparent; color:#848E9C; font-size:12px; font-weight:600;
+    padding:6px 12px; cursor:pointer;
+  }
+  .lang-toggle button.active { background:#F0B90B; color:#0B0E11; }
+
+  .filters {
+    display:flex; gap:8px; padding:14px 16px 0; overflow-x:auto;
+  }
+  .filter-chip {
+    flex-shrink:0; padding:8px 16px; border-radius:20px; font-size:12.5px; font-weight:600;
+    border:1px solid #2B3139; color:#848E9C; cursor:pointer; background:#181A20; white-space:nowrap;
+  }
+  .filter-chip.active { background:#F0B90B; color:#0B0E11; border-color:#F0B90B; }
+  .filter-chip .count {
+    display:inline-block; margin-left:6px; font-size:11px; opacity:0.8;
+  }
+
+  .container { padding:16px; max-width:640px; margin:0 auto; }
+  .config-hint {
+    font-size:11.5px; color:#5E6673; background:#181A20; border:1px solid #2B3139;
+    border-radius:8px; padding:10px 12px; margin-bottom:14px; line-height:1.5;
+  }
+  .config-hint code { color:#F0B90B; }
+
+  .item-card {
+    background:#1E2329; border-radius:10px; padding:14px; margin-bottom:12px;
+    border:1px solid #2B3139; display:flex; gap:12px;
+  }
+  .item-card img {
+    width:76px; height:76px; border-radius:8px; object-fit:cover; background:#0B0E11; flex-shrink:0;
+  }
+  .item-info { flex:1; min-width:0; }
+  .item-title { font-size:14.5px; font-weight:700; color:#EAECEF; margin-bottom:2px; }
+  .item-creator { font-size:12px; color:#F0B90B; }
+  .item-meta { font-size:11.5px; color:#848E9C; margin-top:4px; line-height:1.6; }
+  .item-wallet {
+    font-size:11px; color:#5E6673; margin-top:4px; word-break:break-all; font-family:monospace;
+  }
+  .status-pill {
+    display:inline-block; font-size:10.5px; padding:2px 8px; border-radius:10px; font-weight:700;
+    margin-top:6px;
+  }
+  .status-pill.pending { background:rgba(240,185,11,0.12); color:#F0B90B; }
+  .status-pill.approved { background:rgba(3,166,109,0.12); color:#03A66D; }
+  .status-pill.rejected { background:rgba(246,70,93,0.12); color:#F6465D; }
+  .reject-reason {
+    font-size:11.5px; color:#F6465D; margin-top:6px; font-style:italic;
+  }
+
+  .action-row { display:flex; gap:8px; margin-top:10px; }
+  .btn-approve, .btn-reject, .btn-view {
+    flex:1; padding:9px 0; border-radius:7px; font-size:12.5px; font-weight:700; border:none; cursor:pointer;
+  }
+  .btn-approve { background:#03A66D; color:#fff; }
+  .btn-reject { background:transparent; border:1px solid #F6465D; color:#F6465D; }
+  .btn-view { background:transparent; border:1px solid #2B3139; color:#848E9C; }
+
+  .empty-state { text-align:center; padding:60px 20px; color:#5E6673; font-size:13px; }
+  .refresh-btn {
+    width:100%; background:#2B3139; color:#EAECEF; border:none; border-radius:8px;
+    padding:11px; font-size:13px; margin-bottom:14px; cursor:pointer; font-weight:600;
+  }
+
+  .modal-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100;
+    align-items:flex-end; justify-content:center;
+  }
+  .modal-overlay.show { display:flex; }
+  .modal-box {
+    background:#1E2329; border-radius:16px 16px 0 0; padding:20px; width:100%; max-width:520px;
+    border:1px solid #2B3139; border-bottom:none;
+  }
+  .modal-box h3 { font-size:15px; margin-bottom:12px; color:#EAECEF; }
+  .modal-box textarea {
+    width:100%; background:#0B0E11; border:1px solid #2B3139; border-radius:8px; color:#EAECEF;
+    padding:10px; font-size:13px; min-height:70px; resize:vertical; font-family:inherit; margin-bottom:12px;
+  }
+  .modal-actions { display:flex; gap:8px; }
+  .modal-actions button {
+    flex:1; padding:11px; border-radius:8px; font-size:13px; font-weight:700; border:none; cursor:pointer;
+  }
+  .modal-cancel { background:#2B3139; color:#848E9C; }
+  .modal-confirm { background:#F6465D; color:#fff; }
+  .modal-confirm.ok { background:#03A66D; }
+
+  /* ---- Toast notifications ---- */
+  .toast-container {
+    position:fixed; top:16px; left:0; right:0; z-index:300;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    pointer-events:none; padding:0 16px;
+  }
+  .toast {
+    pointer-events:auto;
+    display:flex; align-items:flex-start; gap:10px;
+    width:100%; max-width:420px;
+    background:#1E2329; border:1px solid #2B3139; border-left:4px solid #848E9C;
+    border-radius:9px; padding:12px 14px; box-shadow:0 8px 24px rgba(0,0,0,0.45);
+    font-size:13px; line-height:1.45; color:#EAECEF;
+    animation: toastIn .28s cubic-bezier(.2,.9,.3,1);
+  }
+  .toast.leaving { animation: toastOut .22s ease forwards; }
+  .toast .toast-icon {
+    width:20px; height:20px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; margin-top:1px;
+  }
+  .toast.success { border-left-color:#03A66D; }
+  .toast.success .toast-icon { background:rgba(3,166,109,0.15); color:#03A66D; }
+  .toast.error { border-left-color:#F6465D; }
+  .toast.error .toast-icon { background:rgba(246,70,93,0.15); color:#F6465D; }
+  .toast.info { border-left-color:#F0B90B; }
+  .toast.info .toast-icon { background:rgba(240,185,11,0.15); color:#F0B90B; }
+  .toast .toast-body { flex:1; min-width:0; }
+  .toast .toast-title { font-weight:700; margin-bottom:1px; }
+  .toast .toast-msg { color:#B7BDC6; font-size:12px; word-break:break-word; }
+  .toast .toast-close {
+    background:none; border:none; color:#5E6673; font-size:15px; cursor:pointer; padding:0 2px; flex-shrink:0;
+  }
+  @keyframes toastIn { from { opacity:0; transform:translateY(-14px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes toastOut { from { opacity:1; transform:translateY(0); } to { opacity:0; transform:translateY(-10px); } }
+
+  /* ---- Inline action-row spinner while approve/reject is processing ---- */
+  .action-row.processing .btn-approve,
+  .action-row.processing .btn-reject { opacity:0.55; pointer-events:none; }
+  .btn-spinner {
+    display:inline-block; width:12px; height:12px; margin-right:6px;
+    border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%;
+    vertical-align:-2px; animation:spin .6s linear infinite;
+  }
+  .btn-reject .btn-spinner { border-color:rgba(246,70,93,0.35); border-top-color:#F6465D; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>TCC Admin</h1>
+    <span data-i18n="headerSub">ตรวจสอบและอนุมัติผลงาน</span>
+  </div>
+  <div class="lang-toggle">
+    <button id="btnLangTh" class="active" onclick="setLang('th')">TH</button>
+    <button id="btnLangEn" onclick="setLang('en')">EN</button>
+  </div>
+</div>
+
+<div class="filters" id="filterChips">
+  <div class="filter-chip active" data-status="Pending" onclick="setFilter('Pending')">
+    <span data-i18n="filterPending">รออนุมัติ</span><span class="count" id="countPending"></span>
+  </div>
+  <div class="filter-chip" data-status="Approved" onclick="setFilter('Approved')">
+    <span data-i18n="filterApproved">อนุมัติแล้ว</span><span class="count" id="countApproved"></span>
+  </div>
+  <div class="filter-chip" data-status="Rejected" onclick="setFilter('Rejected')">
+    <span data-i18n="filterRejected">ถูกปฏิเสธ</span><span class="count" id="countRejected"></span>
+  </div>
+  <div class="filter-chip" data-status="All" onclick="setFilter('All')">
+    <span data-i18n="filterAll">ทั้งหมด</span><span class="count" id="countAll"></span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="config-hint">
+    <span data-i18n="configHint">ตั้งค่า GAS_URL ในไฟล์นี้ให้ตรงกับ Web App ที่ deploy จาก</span> <code>tcc_creator_backend.gs</code>
+  </div>
+
+  <button class="refresh-btn" onclick="loadSubmissions()" data-i18n="btnRefresh">รีเฟรชรายการ</button>
+
+  <div id="itemsList"></div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <h3 id="confirmModalTitle">ยืนยันอนุมัติผลงานนี้?</h3>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeConfirmModal(false)" data-i18n="modalCancel">ยกเลิก</button>
+      <button class="modal-confirm ok" id="confirmModalOkBtn" onclick="closeConfirmModal(true)" data-i18n="btnApprove">อนุมัติ</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal-box">
+    <h3 data-i18n="modalTitle">ระบุเหตุผลการปฏิเสธ</h3>
+    <textarea id="rejectReasonInput" data-i18n-placeholder="modalPlaceholder" placeholder="เช่น ไม่สามารถยืนยันความเป็นเจ้าของลิขสิทธิ์ได้"></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeRejectModal()" data-i18n="modalCancel">ยกเลิก</button>
+      <button class="modal-confirm" onclick="confirmReject()" data-i18n="modalConfirm">ยืนยันปฏิเสธ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzKUDw35OOydqK9x9Yw8J9trwHHNhFSaoR53Db05DlFz_P8QUhrppqYuqA7j15sVZc20w/exec";
+  let currentLang = 'th';
+  let currentFilter = 'Pending';
+  let allItems = [];
+  let pendingRejectId = null;
+
+  const i18n = {
+    headerSub:        { th:'ตรวจสอบและอนุมัติผลงาน', en:'Review and approve submissions' },
+    filterPending:    { th:'รออนุมัติ', en:'Pending' },
+    filterApproved:   { th:'อนุมัติแล้ว', en:'Approved' },
+    filterRejected:   { th:'ถูกปฏิเสธ', en:'Rejected' },
+    filterAll:        { th:'ทั้งหมด', en:'All' },
+    configHint:       { th:'ตั้งค่า GAS_URL ในไฟล์นี้ให้ตรงกับ Web App ที่ deploy จาก', en:'Set GAS_URL in this file to match the Web App deployed from' },
+    btnRefresh:       { th:'รีเฟรชรายการ', en:'Refresh list' },
+    modalTitle:       { th:'ระบุเหตุผลการปฏิเสธ', en:'Enter rejection reason' },
+    modalPlaceholder: { th:'เช่น ไม่สามารถยืนยันความเป็นเจ้าของลิขสิทธิ์ได้', en:'e.g. Unable to verify copyright ownership' },
+    modalCancel:      { th:'ยกเลิก', en:'Cancel' },
+    modalConfirm:     { th:'ยืนยันปฏิเสธ', en:'Confirm rejection' },
+    btnApprove:       { th:'อนุมัติ', en:'Approve' },
+    btnReject:        { th:'ปฏิเสธ', en:'Reject' },
+    btnViewImage:     { th:'ดูภาพ', en:'View image' },
+    lblCategory:      { th:'หมวดหมู่', en:'Category' },
+    lblLicense:       { th:'ลิขสิทธิ์', en:'License' },
+    lblRoyalty:       { th:'Royalty', en:'Royalty' },
+    lblPrice:         { th:'ราคา', en:'Price' },
+    lblUsdt:          { th:'USDT', en:'USDT' },
+    lblRejectReason:  { th:'เหตุผล:', en:'Reason:' },
+    emptyState:       { th:'ไม่มีรายการในหมวดนี้', en:'No items in this category' },
+    loadingState:     { th:'กำลังโหลดรายการ...', en:'Loading items...' },
+    errLoad:          { th:'โหลดข้อมูลไม่สำเร็จ ตรวจสอบ GAS_URL', en:'Failed to load data. Check GAS_URL' },
+    confirmApprove:   { th:'ยืนยันอนุมัติผลงานนี้?', en:'Confirm approval of this artwork?' },
+    processingMsg:    { th:'กำลังดำเนินการ...', en:'Processing...' },
+    errUpdate:        { th:'อัปเดตสถานะไม่สำเร็จ', en:'Failed to update status' }
+  };
+
+  function t(key) { return i18n[key] ? i18n[key][currentLang] : key; }
+
+  // ---- Toast notifications (แทน alert()) ----
+  function showToast(message, type, titleKey) {
+    type = type || 'info';
+    const icons = { success: '✓', error: '✕', info: 'i' };
+    const titles = {
+      success: titleKey ? t(titleKey) : (currentLang === 'th' ? 'สำเร็จ' : 'Success'),
+      error:   titleKey ? t(titleKey) : (currentLang === 'th' ? 'ผิดพลาด' : 'Error'),
+      info:    titleKey ? t(titleKey) : (currentLang === 'th' ? 'แจ้งเตือน' : 'Notice')
+    };
+    const container = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML =
+      '<div class="toast-icon">' + icons[type] + '</div>' +
+      '<div class="toast-body">' +
+        '<div class="toast-title">' + titles[type] + '</div>' +
+        '<div class="toast-msg"></div>' +
+      '</div>' +
+      '<button class="toast-close">&times;</button>';
+    el.querySelector('.toast-msg').textContent = message;
+    const remove = () => {
+      el.classList.add('leaving');
+      setTimeout(() => el.remove(), 220);
+    };
+    el.querySelector('.toast-close').onclick = remove;
+    container.appendChild(el);
+    setTimeout(remove, type === 'error' ? 5000 : 3200);
+  }
+
+  // ---- Confirm dialog แบบ custom (แทน confirm()) ----
+  function confirmDialog(titleText) {
+    const modal = document.getElementById('confirmModal');
+    document.getElementById('confirmModalTitle').textContent = titleText;
+    modal.classList.add('show');
+    return new Promise(resolve => { pendingConfirmResolve = resolve; });
+  }
+
+  function closeConfirmModal(result) {
+    document.getElementById('confirmModal').classList.remove('show');
+    if (pendingConfirmResolve) { pendingConfirmResolve(result); pendingConfirmResolve = null; }
+  }
+  let pendingConfirmResolve = null;
+
+  function setLang(lang) {
+    currentLang = lang;
+    document.getElementById('btnLangTh').classList.toggle('active', lang === 'th');
+    document.getElementById('btnLangEn').classList.toggle('active', lang === 'en');
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+    renderList();
+  }
+
+  function setFilter(status) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.status === status);
+    });
+    renderList();
+  }
+
+  function updateCounts() {
+    const c = { Pending:0, Approved:0, Rejected:0 };
+    allItems.forEach(item => { if (c[item.status] !== undefined) c[item.status]++; });
+    document.getElementById('countPending').textContent = ' ' + c.Pending;
+    document.getElementById('countApproved').textContent = ' ' + c.Approved;
+    document.getElementById('countRejected').textContent = ' ' + c.Rejected;
+    document.getElementById('countAll').textContent = ' ' + allItems.length;
+  }
+
+  async function loadSubmissions() {
+    const list = document.getElementById('itemsList');
+    list.innerHTML = '<div class="empty-state">' + t('loadingState') + '</div>';
+    try {
+      const res = await fetch(GAS_URL + '?action=getAllSubmissions&status=All');
+      const data = await res.json();
+      allItems = data.items || [];
+      updateCounts();
+      renderList();
+    } catch (err) {
+      list.innerHTML = '<div class="empty-state">' + t('errLoad') + '</div>';
+      showToast(t('errLoad'), 'error');
+    }
+  }
+
+  function renderList() {
+    const list = document.getElementById('itemsList');
+    const filtered = currentFilter === 'All' ? allItems : allItems.filter(i => i.status === currentFilter);
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty-state">' + t('emptyState') + '</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(item => {
+      const statusClass = item.status === 'Approved' ? 'approved' : (item.status === 'Rejected' ? 'rejected' : 'pending');
+      const statusText = item.status === 'Approved' ? t('filterApproved') : (item.status === 'Rejected' ? t('filterRejected') : t('filterPending'));
+
+      let actions = '';
+      if (item.status === 'Pending') {
+        actions = '<div class="action-row">' +
+          '<button class="btn-approve" onclick="approveItem(\'' + item.id + '\')">' + t('btnApprove') + '</button>' +
+          '<button class="btn-reject" onclick="openRejectModal(\'' + item.id + '\')">' + t('btnReject') + '</button>' +
+        '</div>';
+      }
+
+      const rejectReasonHtml = (item.status === 'Rejected' && item.rejectReason)
+        ? '<div class="reject-reason">' + t('lblRejectReason') + ' ' + item.rejectReason + '</div>'
+        : '';
+
+      return '<div class="item-card" data-id="' + item.id + '">' +
+        '<img src="' + (item.imageUrl || '') + '" onerror="this.style.display=\'none\'" onclick="window.open(\'' + item.imageUrl + '\',\'_blank\')">' +
+        '<div class="item-info">' +
+          '<div class="item-title">' + item.title + '</div>' +
+          '<div class="item-creator">' + item.creatorName + '</div>' +
+          '<div class="item-meta">' +
+            t('lblCategory') + ': ' + item.category + '<br>' +
+            t('lblLicense') + ': ' + item.licenseType + ' &nbsp;•&nbsp; ' +
+            t('lblRoyalty') + ': ' + item.royalty + '% &nbsp;•&nbsp; ' +
+            t('lblPrice') + ': ' + item.price + ' ' + t('lblUsdt') +
+          '</div>' +
+          '<div class="item-wallet">' + item.wallet + '</div>' +
+          '<span class="status-pill ' + statusClass + '">' + statusText + '</span>' +
+          rejectReasonHtml +
+          actions +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  async function approveItem(id) {
+    const ok = await confirmDialog(t('confirmApprove'));
+    if (!ok) return;
+    await updateStatus(id, 'Approved', '');
+  }
+
+  function openRejectModal(id) {
+    pendingRejectId = id;
+    document.getElementById('rejectReasonInput').value = '';
+    document.getElementById('rejectModal').classList.add('show');
+  }
+
+  function closeRejectModal() {
+    pendingRejectId = null;
+    document.getElementById('rejectModal').classList.remove('show');
+  }
+
+  async function confirmReject() {
+    const reason = document.getElementById('rejectReasonInput').value.trim();
+    const id = pendingRejectId;
+    closeRejectModal();
+    await updateStatus(id, 'Rejected', reason);
+  }
+
+  async function updateStatus(id, newStatus, rejectReason) {
+    const row = document.querySelector('.item-card[data-id="' + id + '"] .action-row');
+    let originalHtml = null;
+    if (row) {
+      originalHtml = row.innerHTML;
+      row.classList.add('processing');
+      row.innerHTML = '<span class="btn-spinner"></span>' + t('processingMsg');
+    }
+    try {
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'updateStatus', id: id, newStatus: newStatus, rejectReason: rejectReason })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(
+          newStatus === 'Approved'
+            ? (currentLang === 'th' ? 'อนุมัติผลงานเรียบร้อยแล้ว' : 'Artwork approved')
+            : (currentLang === 'th' ? 'ปฏิเสธผลงานเรียบร้อยแล้ว' : 'Artwork rejected'),
+          'success'
+        );
+        await loadSubmissions();
+      } else {
+        showToast(t('errUpdate') + (data.error ? ': ' + data.error : ''), 'error');
+        if (row && originalHtml) { row.classList.remove('processing'); row.innerHTML = originalHtml; }
+      }
+    } catch (err) {
+      showToast(t('errUpdate'), 'error');
+      if (row && originalHtml) { row.classList.remove('processing'); row.innerHTML = originalHtml; }
+    }
+  }
+
+  loadSubmissions();
+</script>
+
+</body>
+</html>
