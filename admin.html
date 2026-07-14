@@ -188,7 +188,7 @@
 
 <div class="container">
   <div class="config-hint">
-    <span data-i18n="configHint">TCC Marketplace listing Smart Contract</span> <code>ERC-721 On BNB Smart Chain</code>
+    <span data-i18n="configHint">ตั้งค่า GAS_URL ในไฟล์นี้ให้ตรงกับ Web App ที่ deploy จาก</span> <code>tcc_creator_backend.gs</code>
   </div>
 
   <button class="refresh-btn" onclick="loadSubmissions()" data-i18n="btnRefresh">รีเฟรชรายการ</button>
@@ -457,7 +457,15 @@
             : (currentLang === 'th' ? 'ปฏิเสธผลงานเรียบร้อยแล้ว' : 'Artwork rejected'),
           'success'
         );
-        await loadSubmissions();
+        // อัปเดต allItems ใน memory โดยตรง — ไม่ fetch ใหม่จาก GAS
+        // (GAS execution ใหม่อาจได้ stale cache ทำให้ข้อมูลกลับไปเป็นค่าเก่า)
+        const target = allItems.find(item => item.id === id);
+        if (target) {
+          target.status = newStatus;
+          target.rejectReason = rejectReason || '';
+        }
+        updateCounts();
+        renderList();
       } else {
         showToast(t('errUpdate') + (data.error ? ': ' + data.error : ''), 'error');
         if (row && originalHtml) { row.classList.remove('processing'); row.innerHTML = originalHtml; }
