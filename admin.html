@@ -354,6 +354,8 @@
       // POST แทน GET เพื่อ bypass Google Apps Script infrastructure-level GET cache
       const res = await fetch(GAS_URL, {
         method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getAllSubmissions', status: 'All' })
       });
       const data = await res.json();
@@ -446,6 +448,8 @@
     try {
       const res = await fetch(GAS_URL, {
         method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'updateStatus', id: id, newStatus: newStatus, rejectReason: rejectReason })
       });
       const data = await res.json();
