@@ -357,6 +357,7 @@
         body: JSON.stringify({ action: 'getAllSubmissions', status: 'All' })
       });
       const data = await res.json();
+      console.log('[loadSubmissions] GAS response items count:', data.items ? data.items.length : 'null', 'success:', data.success);
       allItems = data.items || [];
       updateCounts();
       renderList();
@@ -450,6 +451,7 @@
         body: JSON.stringify({ action: 'updateStatus', id: id, newStatus: newStatus, rejectReason: rejectReason || '' })
       });
       const data = await res.json();
+      console.log('[updateStatus] GAS raw response:', JSON.stringify(data));
       if (data.success) {
         showToast(
           newStatus === 'Approved'
