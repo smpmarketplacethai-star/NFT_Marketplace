@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>TCC Admin - Content Approval</title>
+<title>TCC Admin - Content Approval v1.6</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   body {
@@ -188,7 +188,7 @@
 
 <div class="container">
   <div class="config-hint">
-    <span data-i18n="configHint">TCC Marketplace listing Smart Contract</span> <code>ERC-721 On BNB Smart Chain</code>
+    <span data-i18n="configHint">ตั้งค่า GAS_URL ในไฟล์นี้ให้ตรงกับ Web App ที่ deploy จาก</span> <code>tcc_creator_backend.gs</code>
   </div>
 
   <button class="refresh-btn" onclick="loadSubmissions()" data-i18n="btnRefresh">รีเฟรชรายการ</button>
@@ -358,6 +358,10 @@
       });
       const data = await res.json();
       console.log('[loadSubmissions] GAS response items count:', data.items ? data.items.length : 'null', 'success:', data.success);
+      // [FIX v1.6] log item แรกเพื่อตรวจ field mapping — ถ้าเห็น undefined ใน console = header ชีทไม่ตรง
+      if (data.items && data.items.length > 0) {
+        console.log('[loadSubmissions] first item fields:', JSON.stringify(data.items[0]));
+      }
       allItems = data.items || [];
       updateCounts();
       renderList();
@@ -398,10 +402,10 @@
           '<div class="item-title">' + item.title + '</div>' +
           '<div class="item-creator">' + item.creatorName + '</div>' +
           '<div class="item-meta">' +
-            t('lblCategory') + ': ' + item.category + '<br>' +
-            t('lblLicense') + ': ' + item.licenseType + ' &nbsp;•&nbsp; ' +
-            t('lblRoyalty') + ': ' + item.royalty + '% &nbsp;•&nbsp; ' +
-            t('lblPrice') + ': ' + item.price + ' ' + t('lblUsdt') +
+            t('lblCategory') + ': ' + (item.category  || '—') + '<br>' +
+            t('lblLicense') + ': '  + (item.licenseType || '—') + ' &nbsp;•&nbsp; ' +
+            t('lblRoyalty') + ': '  + (item.royalty !== undefined && item.royalty !== '' ? item.royalty : '—') + '% &nbsp;•&nbsp; ' +
+            t('lblPrice') + ': '    + (item.price    !== undefined && item.price    !== '' ? item.price    : '—') + ' ' + t('lblUsdt') +
           '</div>' +
           '<div class="item-wallet">' + item.wallet + '</div>' +
           '<span class="status-pill ' + statusClass + '">' + statusText + '</span>' +
@@ -452,6 +456,19 @@
       });
       const data = await res.json();
       console.log('[updateStatus] GAS raw response:', JSON.stringify(data));
+      // [FIX v1.6] ยืนยันว่า GAS update โดน row ถูกต้อง
+      // ถ้า matchedTitle ไม่ตรงกับ title ของ card ที่กด = มีปัญหา ID ผิดใน sheet
+      if (data.success && data.matchedTitle) {
+        const expectedItem = allItems.find(item => item.id === id);
+        if (expectedItem && data.matchedTitle !== expectedItem.title) {
+          console.warn('[updateStatus] WARNING: ID matched wrong row in sheet!',
+            'Expected:', expectedItem.title, 'Got:', data.matchedTitle);
+          showToast('คำเตือน: อัปเดตโดน row ผิดใน Sheet (ID ไม่ตรง title) กรุณาตรวจสอบข้อมูล', 'error');
+          if (row && originalHtml) { row.classList.remove('processing'); row.innerHTML = originalHtml; }
+          return;
+        }
+        console.log('[updateStatus] Row match OK — title:', data.matchedTitle, 'row:', data.row);
+      }
       if (data.success) {
         showToast(
           newStatus === 'Approved'
